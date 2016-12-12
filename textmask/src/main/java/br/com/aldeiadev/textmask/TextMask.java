@@ -41,7 +41,7 @@ public abstract class TextMask {
     }
 
     public static TextWatcher getWatcher(final String mask, final EditText editText) {
-        editText.setText(getUnmaskedText(mask, editText.getText().toString()));
+        editText.setText(getMaskedText(mask, editText.getText().toString()));
         return new TextWatcher() {
 
             int totalHashes = getTotalHashes(mask); //Total digits the user can type
