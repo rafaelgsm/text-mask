@@ -10,7 +10,7 @@ repositories {
 
 
 dependencies {
-    compile 'com.github.rafaelgsm:text-mask:v0.5'
+    compile 'com.github.rafaelgsm:text-mask:v0.6'
 }
 ```
 
