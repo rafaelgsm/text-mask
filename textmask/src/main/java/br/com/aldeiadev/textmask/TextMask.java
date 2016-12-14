@@ -2,14 +2,14 @@ package br.com.aldeiadev.textmask;
 
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.widget.EditText;
 
 /**
  * Created by Rafael on 12/11/2016.
- * <p/>
+ * <p>
  * Utility class to apply/remove characters to a String or TextView/EditText, based on a mask.
- * <p/>
- * The mask ignores any character inserted that is not at the end of the text...
+ * <p>
  */
 public abstract class TextMask {
     public static String getMaskedText(final String mask, final String cleanText) {
@@ -56,11 +56,6 @@ public abstract class TextMask {
         editText.setText(getMaskedText(mask, editText.getText().toString()));
         return new TextWatcher() {
 
-            int totalHashes = getTotalHashes(mask); //Total digits the user can type
-            int totalNonHashes; //getTotalHashes(mask) is setting this value!
-
-            int[] hashPositions = getHashPositions(mask); //Specific position of each key typed by the user
-
             boolean isUpdating = false;
             String oldText; //Used only to reapply a previous text in case the user inserts a character before the last position...
 
@@ -74,12 +69,26 @@ public abstract class TextMask {
                 if (isUpdating) return;
                 isUpdating = true;
 
-                //Can only insert characters at the end of the text, and the number of chars cannot be higher than the mask's length
-                if (indexOfInsertion + 1 < charSequence.length() || indexOfInsertion + 1 > mask.length()) {
+                //If a character is inserted in the middle of the text, the rest of the string will be erased (else)...
+                if (indexOfInsertion + 1 > mask.length()) {
 //                    Log.d("GenericMask", "Ignored");
                     editText.setText(oldText);
                 } else {
-                    editText.setText(getMaskedText(charSequence.toString()));
+//                    Log.d("GenericMask", "Mask...");
+
+                    if (indexOfInsertion + 1 < charSequence.length()) {
+
+                        if (indexOfInsertion < 1) {
+                            editText.setText(getMaskedText(mask, getUnmaskedText(mask, charSequence.toString())));
+                        } else {
+                            StringBuilder sb = new StringBuilder(charSequence.toString());
+                            sb.delete(indexOfInsertion + 1, sb.length());
+                            editText.setText(getMaskedText(mask, getUnmaskedText(mask, sb.toString())));
+                        }
+
+                    } else {
+                        editText.setText(getMaskedText(mask, getUnmaskedText(mask, charSequence.toString())));
+                    }
                 }
 
                 editText.setSelection(editText.getText().toString().length());
@@ -91,85 +100,45 @@ public abstract class TextMask {
             public void afterTextChanged(Editable finalText) {
             }
 
-            /**
-             * Applies the mask at a text. It will ignore the new digits that matches the mask...
-             * Ex.:
-             * mask = "#1#"
-             *
-             * user types => 12
-             *
-             * Result => 112
-             *
-             * Ex2.:
-             * mask = "#1#"
-             *
-             * user types => 11
-             *
-             * Result => 11
-             */
-            private String getMaskedText(String finalText) {
+            private String getMaskedText(final String mask, final String cleanText) {
+                StringBuilder text = new StringBuilder(cleanText);
 
-                StringBuilder sb = new StringBuilder(finalText);
-                for (int i = 0; i < mask.length() && i < sb.length(); i++) {
-                    if (!isHashPosition(i)) {
-                        if (sb.charAt(i) != mask.charAt(i)) {
-                            for (int j = i; j < mask.length(); j++) {
-                                if (sb.charAt(j) != mask.charAt(j) && mask.charAt(j) != '#') {
-                                    sb.insert(j, "" + mask.charAt(j));
-                                } else {
-                                    break;
-                                }
+                for (int i = 0; i < text.length(); i++) {
+                    if (i < mask.length() && mask.charAt(i) != '#') {
+                        text.insert(i, "" + mask.charAt(i));
+                    }
+                }
+
+                if (text.length() > mask.length()) {
+                    text.delete(mask.length(), text.length());
+                }
+
+                return text.toString();
+            }
+
+            private String getUnmaskedText(final String mask, String maskedText) {
+                StringBuilder text = new StringBuilder(maskedText);
+                StringBuilder sbMask = new StringBuilder(mask);
+
+                for (int i = 0; i < text.length(); i++) {
+                    if (i < sbMask.length()) {
+
+                        if (sbMask.charAt(i) != '#') {
+
+                            if (text.charAt(i) == sbMask.charAt(i)) {
+                                text.deleteCharAt(i);
+                                sbMask.deleteCharAt(i);
+                                i--;
+                            } else {
+                                sbMask.deleteCharAt(i);
                             }
-                            i++;
+
                         }
                     }
                 }
 
-                if (sb.length() > mask.length()) {
-                    sb.delete(mask.length(), sb.length());
-                }
-
-                return sb.toString();
-            }
-
-            //Returns the number of keys that the user can type (number of hashes) AND also the "totalNonHashes"!!!
-            private int getTotalHashes(String maskText) {
-
-                int counter = 0;
-                for (int i = 0; i < maskText.length(); i++) {
-                    if (maskText.charAt(i) == '#') {
-                        counter++;
-                    } else {
-                        totalNonHashes++;
-                    }
-                }
-                return counter;
-            }
-
-            //Fills the array with each hash's position
-            private int[] getHashPositions(String maskText) {
-                hashPositions = new int[totalHashes];
-                int counter = 0;
-                for (int i = 0; i < maskText.length(); i++) {
-                    if (maskText.charAt(i) == '#') {
-                        hashPositions[counter] = i;
-                        counter++;
-                    }
-                }
-                return hashPositions;
-            }
-
-            //Tells wether an index is a hash position...
-            private boolean isHashPosition(int index) {
-                for (int i = 0; i < hashPositions.length; i++) {
-                    if (hashPositions[i] == index) {
-                        return true;
-                    }
-                }
-
-                return false;
+                return text.toString();
             }
         };
     }
-
 }
