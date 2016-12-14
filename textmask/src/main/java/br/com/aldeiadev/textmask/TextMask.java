@@ -2,7 +2,6 @@ package br.com.aldeiadev.textmask;
 
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.widget.EditText;
 
 /**
@@ -22,6 +21,10 @@ public abstract class TextMask {
             }
         }
 
+        if (text.length() > mask.length()) {
+            text.delete(mask.length(), text.length());
+        }
+
         return text.toString();
     }
 
@@ -30,10 +33,19 @@ public abstract class TextMask {
         StringBuilder sbMask = new StringBuilder(mask);
 
         for (int i = 0; i < text.length(); i++) {
-            if (i < sbMask.length() && sbMask.charAt(i) != '#') {
-                text.deleteCharAt(i);
-                sbMask.deleteCharAt(i);
-                i--;
+            if (i < sbMask.length()) {
+
+                if (sbMask.charAt(i) != '#') {
+
+                    if (text.charAt(i) == sbMask.charAt(i)) {
+                        text.deleteCharAt(i);
+                        sbMask.deleteCharAt(i);
+                        i--;
+                    } else {
+                        sbMask.deleteCharAt(i);
+                    }
+
+                }
             }
         }
 
@@ -62,7 +74,8 @@ public abstract class TextMask {
                 if (isUpdating) return;
                 isUpdating = true;
 
-                if (indexOfInsertion + 1 < charSequence.length()) {
+                //Can only insert characters at the end of the text, and the number of chars cannot be higher than the mask's length
+                if (indexOfInsertion + 1 < charSequence.length() || indexOfInsertion + 1 > mask.length()) {
 //                    Log.d("GenericMask", "Ignored");
                     editText.setText(oldText);
                 } else {
@@ -110,6 +123,10 @@ public abstract class TextMask {
                             i++;
                         }
                     }
+                }
+
+                if (sb.length() > mask.length()) {
+                    sb.delete(mask.length(), sb.length());
                 }
 
                 return sb.toString();
